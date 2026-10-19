@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- falsos positivos conocidos, cada exclusion lleva su motivo -->
+<FindBugsFilter>
+  <!-- las clases de configuracion solo guardan objetos inmutables o gestionados por Spring -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP, EI_EXPOSE_REP2"/>
+    <Class name="~com\.auditoria\.citas\.(configuracion|web|aplicacion|infraestructura)\..*"/>
+  </Match>
+</FindBugsFilter>

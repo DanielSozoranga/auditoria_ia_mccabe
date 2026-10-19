@@ -1,0 +1,41 @@
+# integracion continua: compila, prueba, mide cobertura y busca errores en cada push y pull request
+name: CI
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Windows no siempre guarda el permiso de ejecucion del wrapper
+      - name: Dar permiso al wrapper
+        run: chmod +x mvnw
+
+      # corre estilo, tests, cobertura al 100% y SpotBugs
+      - name: Verificar
+        run: ./mvnw -B verify
+
+      # las mutaciones tardan mas, por eso van en un paso aparte
+      - name: Pruebas de mutacion
+        run: ./mvnw -B org.pitest:pitest-maven:mutationCoverage
+
+      - name: Guardar reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes
+          path: |
+            target/site/jacoco
+            target/pit-reports

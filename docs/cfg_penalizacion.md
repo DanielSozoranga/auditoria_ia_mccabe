@@ -1,14 +1,14 @@
 # Grafo de flujo de control: calcularPenalizacion
 
-Funcion que se analiza (src/reglas.js):
+Funcion que se analiza (`dominio/Reglas.java`):
 
-```javascript
-function calcularPenalizacion(inicio, ahora, esEmergencia) {
-  const tardia = inicio - ahora < HORAS_LIMITE_CANCELACION * MS_POR_HORA;
-  if (tardia && !esEmergencia) {
-    return PENALIZACION;
-  }
-  return 0;
+```java
+public static BigDecimal calcularPenalizacion(LocalDateTime inicio, LocalDateTime ahora, boolean esEmergencia) {
+    boolean tardia = Duration.between(ahora, inicio).compareTo(Duration.ofHours(HORAS_LIMITE_CANCELACION)) < 0;
+    if (tardia && !esEmergencia) {
+        return PENALIZACION;
+    }
+    return BigDecimal.ZERO;
 }
 ```
 
@@ -19,7 +19,7 @@ GitHub dibuja este diagrama solo con abrir el archivo.
 ```mermaid
 flowchart TD
     %% entrada de la funcion
-    ENTRY((ENTRY)) --> N1["tardia = inicio menos ahora, menor a 24h"]
+    ENTRY((ENTRY)) --> N1["tardia = menos de 24h"]
     %% primera decision
     N1 --> P1{"tardia?"}
     P1 -->|Verdadero| P2{"esEmergencia?"}
@@ -48,14 +48,14 @@ flowchart TD
 | P + 1 | 2 + 1 | 3 |
 | Regiones | 2 areas cerradas + 1 exterior | 3 |
 
-ESLint tambien reporta 3 para esta funcion (`npm run complejidad`).
+Checkstyle tambien reporta 3 para esta funcion (`./mvnw checkstyle:check@complejidad`).
 
 ## Caminos independientes y su test
 
-| Camino | Recorrido | Resultado | Test |
+| Camino | Recorrido | Resultado | Test (ReglasTest, clase CalcularPenalizacion) |
 |---|---|---|---|
-| 1 | ENTRY, N1, P1 falso, R2, EXIT | 0 | cancelar con tiempo no cobra |
-| 2 | ENTRY, N1, P1 verdadero, P2 falso, R1, EXIT | 15 | cancelar tarde sin emergencia cobra |
-| 3 | ENTRY, N1, P1 verdadero, P2 verdadero, R2, EXIT | 0 | cancelar tarde con emergencia no cobra |
+| 1 | ENTRY, N1, P1 falso, R2, EXIT | 0 | cancelarConTiempoNoCobra |
+| 2 | ENTRY, N1, P1 verdadero, P2 falso, R1, EXIT | 15 | cancelarTardeSinEmergenciaCobra |
+| 3 | ENTRY, N1, P1 verdadero, P2 verdadero, R2, EXIT | 0 | cancelarTardeConEmergenciaNoCobra |
 
-Los tests estan en tests/reglas.test.js. Hay un cuarto test, el de exactamente 24 horas, que no es un camino nuevo: prueba el limite de la condicion de P1.
+Hay dos tests mas, `exactamente24HorasAntesNoCobra` y `unMinutoAntesDeLas24HorasCobra`. No son caminos nuevos: prueban cada lado del limite de la condicion de P1.
