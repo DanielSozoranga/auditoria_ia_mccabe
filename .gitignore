@@ -1,0 +1,14 @@
+# entorno virtual
+.venv/
+
+# cache de python
+__pycache__/
+*.pyc
+
+# resultados de pytest y cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# carpeta de trabajo de mutmut
+mutants/
