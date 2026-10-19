@@ -1,12 +1,16 @@
-# dependencias de node
-node_modules/
-
-# resultados de jest y c8
-coverage/
-
-# carpetas de trabajo y reportes de stryker
-.stryker-tmp/
-reports/
+# resultados de Maven: clases, reportes de JaCoCo y de PIT
+target/
 
 # base de datos local de la app
 *.db
+
+# dependencias y reportes de la version Node anterior
+node_modules/
+coverage/
+.stryker-tmp/
+reports/
+
+# archivos de los editores
+.idea/
+.vscode/
+*.iml

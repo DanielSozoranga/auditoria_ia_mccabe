@@ -1,27 +1,28 @@
-# Auditoria del codigo
+# Auditoria del codigo (version Java)
 
 ## 1. Complejidad ciclomatica V(G)
 
-Se calculo a mano con V(G) = P + 1 (P son los puntos de decision, cada `&&` y `||` cuenta como uno) y se confirmo con ESLint (`npm run complejidad`).
+Se calculo a mano con V(G) = P + 1 (P son los puntos de decision, cada `&&` y `||` cuenta como uno) y se confirmo con Checkstyle (`./mvnw checkstyle:check@complejidad`).
 
-| Funcion | P | V(G) a mano | ESLint | Tests de camino | Tests de limite |
+| Metodo | P | V(G) a mano | Checkstyle | Tests de camino | Limites y casos extra |
 |---|---|---|---|---|---|
-| esPediatrico | 3 | 4 | 4 | 4 | 4 |
-| validarTipoConsulta | 2 | 3 | 3 | 3 | 0 |
-| validarHorario | 5 | 6 | 6 | 6 | 1 |
-| hayChoque | 4 | 5 | 5 | 5 | 1 |
-| calcularPenalizacion | 2 | 3 | 3 | 3 | 1 |
-| agendarCita | 1 | 2 | 2 | 2 | 2 |
-| cancelarCita | 2 | 3 | 3 | 3 | 0 |
-| leerDatosCita | 4 | 5 | 5 | 5 | 0 |
+| Reglas.esPediatrico | 2 | 3 | 3 | 3 | 4 |
+| Reglas.validarTipoConsulta | 2 | 3 | 3 | 3 | 0 |
+| Reglas.tipoDesdeTexto | 0 | 1 | 1 | 1 | 1 |
+| Reglas.validarHorario | 5 | 6 | 6 | 6 | 2 |
+| Reglas.hayChoque | 4 | 5 | 5 | 5 | 1 |
+| Reglas.calcularPenalizacion | 2 | 3 | 3 | 3 | 2 |
+| ServicioCitas.agendar | 1 | 2 | 2 | 2 | 3 |
+| ServicioCitas.cancelar | 1 | 2 | 2 | 2 | 3 |
+| ConversorFechas.aHoraLocal | 2 | 3 | 3 | 3 | 1 |
 
-Las demas funciones (base de datos, rutas de la API) tienen V(G) entre 1 y 5.
+El resto de los metodos (repositorio, controlador, manejo de errores) tiene V(G) 1 o 2, salvo el cancelar del controlador que vale 2.
 
-Complejidad maxima: 6. Ninguna funcion pasa de 10, no hace falta refactorizar. `npm run lint` falla si alguna llega a 11.
+Complejidad maxima: 6. Ninguna funcion pasa de 10 y Checkstyle hace fallar la compilacion si alguna llega a 11, asi que no hace falta refactorizar.
 
 ## 2. Caminos de calcularPenalizacion
 
-El diagrama del grafo de flujo esta en docs/cfg_penalizacion.md y la comparacion de prompts en docs/prompts.md.
+El diagrama del grafo de flujo esta en `docs/cfg_penalizacion.md` y la comparacion de prompts en `docs/prompts.md`.
 
 | Camino | tardia | esEmergencia | Resultado |
 |---|---|---|---|
@@ -33,38 +34,62 @@ El diagrama del grafo de flujo esta en docs/cfg_penalizacion.md y la comparacion
 
 | Medida | Resultado |
 |---|---|
-| Tests | 55 en total |
-| Cobertura de sentencias, ramas, funciones y lineas (Jest) | 100% |
-| Cobertura de ramas con c8 | 100% |
-| Mutantes con solo los tests por camino | 104 muertos y 7 sobrevivieron de 111 (93.69%) |
-| Mutantes despues de agregar 9 tests | 111 muertos de 111 (100%) |
+| Tests | 84 (todos pasan) |
+| Cobertura de instrucciones (JaCoCo) | 693 de 693, 100% |
+| Cobertura de ramas (JaCoCo) | 44 de 44, 100% |
+| Cobertura de lineas y metodos (JaCoCo) | 148 de 148 y 56 de 56, 100% |
+| Checkstyle (estilo y V(G) maximo 10) | 0 violaciones |
+| SpotBugs | 0 errores |
+| Mutantes de PIT con los mutadores por defecto | 69 generados, 67 muertos y 2 sobrevivieron |
+| Mutantes de PIT con el grupo STRONGER, despues de agregar un test | 90 generados, 90 muertos, 100% |
 
-Los 55 tests se reparten asi:
+Los 84 tests se reparten asi:
 
-1. 31 tests de camino, exactamente V(G) por funcion (reglas, servicio y leerDatosCita).
-2. 15 tests de la base de datos (incluye que las citas persisten al reiniciar), la API y los archivos del frontend.
-3. 9 tests agregados despues de Stryker: 7 de limites en las reglas y 2 de que agendarCita aplica las reglas.
+1. 28 tests de camino, uno por cada V(G) de cada metodo.
+2. 18 tests de limites y casos extra de esos mismos metodos.
+3. 38 tests de apoyo: tipos, repositorio SQLite, persistencia al reiniciar, API completa, errores inesperados y configuracion.
 
-Los 7 mutantes que sobrevivieron al inicio mostraron que el 100% de cobertura era enganoso:
+La cobertura al 100% es una compuerta: `./mvnw verify` falla si baja de ese valor en instrucciones, ramas, lineas o metodos.
 
-1. Cambiar `<` por `<=` en la edad minima, la edad maxima y el corte de 14 anios no hacia fallar ningun test.
-2. Cambiar `<` por `<=` en la hora de apertura (8:00) no hacia fallar ninguno.
-3. Cambiar `<` por `<=` en las 24 horas de la penalizacion no hacia fallar ninguno.
-4. Borrar las llamadas a validarTipoConsulta y validarHorario dentro de agendarCita no hacia fallar ninguno, porque los tests del servicio solo probaban el choque de horarios.
+## 4. Mutaciones
 
-Los mensajes de error se comparan de forma exacta desde el inicio, por eso no aparecieron mutantes de texto.
+PIT cambia el codigo a proposito y corre los tests. Si ninguno falla, el mutante sobrevive y falta un test.
 
-## 4. Cuestionario de auditoria
+Los tests de limite de las reglas (edad 0, 13, 14 y 120, las 8:00, las 24 horas exactas, la cita cancelada que no corta la revision) se escribieron desde el inicio porque la version Node ya habia mostrado con Stryker que esos huecos existian. Por eso aqui no se repitio el descubrimiento: la primera corrida solo dejo 2 sobrevivientes.
 
-1. Conozco V(G) antes de leer los tests? Si. Se calculo a mano antes de escribir cualquier test y coincide con ESLint.
-2. El 100% incluye aserciones fuertes? Ahora si. Al principio no: Stryker mostro 7 mutantes vivos con 100% de cobertura. Cada test compara el valor o el mensaje exacto.
-3. Estan evaluadas todas las condiciones logicas? Parcial. Istanbul cuenta cada operando de `&&` y `||` como una rama, asi que se mide que cada condicion se evalue. Pero eso no es MC/DC, que exige probar que cada condicion cambia el resultado por si sola. Las condiciones se cubrieron a mano con un test por condicion.
-4. Forcé fallos para ver si los tests los detectan? Si, con Stryker: 111 mutantes y los 111 detectados.
+Los 2 sobrevivientes estaban en `ConfiguracionReloj`: PIT cambiaba el valor que devuelven `zonaHoraria` y `reloj` por `null` y ningun test fallaba. La causa probable es que Spring reutiliza el mismo contexto entre las pruebas y lo crea el primer test que corre, asi que PIT no asocia los demas tests a esas lineas. Ademas, las pruebas de la API reemplazan el reloj por uno fijo. No se investigo mas a fondo. Se arreglo con `ConfiguracionRelojTest`, que comprueba que la zona se lee de `application.properties` y llega al reloj real.
+
+Despues se paso al grupo de mutadores STRONGER, que agrega mas cambios (por ejemplo, quitar condiciones). Resultado: 90 de 90 mutantes muertos.
+
+Ademas, SpotBugs encontro un fallo real antes de las mutaciones: `GeneratedKeyHolder.getKey()` puede devolver `null` y el codigo lo usaba sin revisar. Se corrigio con `Objects.requireNonNull` y un mensaje claro.
+
+## 5. Cuestionario de auditoria
+
+1. Conozco V(G) antes de leer los tests? Si. Se calculo a mano antes de escribir los tests y coincide con Checkstyle.
+2. El 100% incluye aserciones fuertes? Si. Los tests comparan valores, estados y mensajes exactos. PIT lo comprueba: 90 de 90 mutantes muertos.
+3. Estan evaluadas todas las condiciones logicas? Parcial. JaCoCo mide ramas (44 de 44), no MC/DC. Las condiciones con `||` y `&&` se cubrieron con un test por condicion, pero la herramienta no verifica la independencia de cada una.
+4. Forcé fallos para ver si los tests los detectan? Si, con PIT. Con los mutadores por defecto sobrevivieron 2, que se corrigieron, y con STRONGER se detectan los 90.
 5. La complejidad es tan alta que conviene refactorizar? No. El maximo es 6.
 
-## 5. Limites de este trabajo
+## 6. Limites de este trabajo
 
-1. Solo se aplican mutaciones a src/reglas.js y src/servicio.js. La API (src/app.js) y la base (src/db.js) tienen 100% de cobertura pero no se les corrieron mutaciones.
-2. No se valida que la cita termine antes del cierre ni que cruce la hora de almuerzo, solo la hora de inicio.
-3. Las citas son siempre de 30 minutos.
-4. La zona horaria es la del servidor: las reglas de horario usan la hora local de la maquina donde corre.
+1. No se mide MC/DC completo.
+2. PIT reporta 140 de 144 lineas cubiertas con su propio medidor, mientras que JaCoCo mide 148 de 148. Ningun mutante quedo sin cobertura.
+3. La clase `CitasApplication` (el `main`) queda fuera de JaCoCo y de PIT porque solo arranca Spring.
+4. No se valida que la cita termine antes del cierre ni que cruce la hora de almuerzo, solo la hora de inicio.
+5. Las citas duran siempre 30 minutos.
+6. No hay pruebas de concurrencia. SQLite escribe de a uno y la base usa una sola conexion.
+
+## 7. Como repetir las mediciones
+
+```bash
+./mvnw verify
+```
+
+```bash
+./mvnw checkstyle:check@complejidad
+```
+
+```bash
+./mvnw test-compile org.pitest:pitest-maven:mutationCoverage
+```
