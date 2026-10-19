@@ -1,3 +1,6 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const db = require('../src/db');
 
 const LUNES_9AM = new Date(2026, 9, 19, 9, 0);
@@ -33,5 +36,31 @@ describe('base de datos', () => {
     db.insertarCita(conexion, 'Ana', 'general', LUNES_9AM, LUNES_930AM);
     expect(db.listarCitas(conexion).map((c) => c.paciente)).toEqual(['Ana', 'Luis']);
     conexion.close();
+  });
+});
+
+describe('persistencia en archivo', () => {
+  test('las citas siguen ahi despues de cerrar y reabrir la base', () => {
+    // carpeta temporal para no tocar citas.db
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'citas-'));
+    const ruta = path.join(carpeta, 'citas.db');
+    try {
+      // primera conexion: guarda una cita y se cierra, como al apagar el servidor
+      const primera = db.conectar(ruta);
+      const id = db.insertarCita(primera, 'Ana', 'general', LUNES_9AM, LUNES_930AM);
+      primera.close();
+
+      // segunda conexion: como al volver a prender el servidor
+      const segunda = db.conectar(ruta);
+      const cita = db.obtenerCita(segunda, id);
+      expect(db.listarCitas(segunda)).toHaveLength(1);
+      expect(cita.paciente).toBe('Ana');
+      expect(cita.inicio).toEqual(LUNES_9AM);
+      expect(cita.estado).toBe('activa');
+      segunda.close();
+    } finally {
+      // borra la carpeta temporal aunque falle el test
+      fs.rmSync(carpeta, { recursive: true, force: true });
+    }
   });
 });

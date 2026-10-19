@@ -33,16 +33,16 @@ El diagrama del grafo de flujo esta en docs/cfg_penalizacion.md y la comparacion
 
 | Medida | Resultado |
 |---|---|
-| Tests | 54 en total |
+| Tests | 55 en total |
 | Cobertura de sentencias, ramas, funciones y lineas (Jest) | 100% |
 | Cobertura de ramas con c8 | 100% |
 | Mutantes con solo los tests por camino | 104 muertos y 7 sobrevivieron de 111 (93.69%) |
 | Mutantes despues de agregar 9 tests | 111 muertos de 111 (100%) |
 
-Los 54 tests se reparten asi:
+Los 55 tests se reparten asi:
 
 1. 31 tests de camino, exactamente V(G) por funcion (reglas, servicio y leerDatosCita).
-2. 14 tests de la base de datos, la API y los archivos del frontend.
+2. 15 tests de la base de datos (incluye que las citas persisten al reiniciar), la API y los archivos del frontend.
 3. 9 tests agregados despues de Stryker: 7 de limites en las reglas y 2 de que agendarCita aplica las reglas.
 
 Los 7 mutantes que sobrevivieron al inicio mostraron que el 100% de cobertura era enganoso:
