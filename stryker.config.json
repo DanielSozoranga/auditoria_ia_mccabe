@@ -1,0 +1,9 @@
+{
+  "testRunner": "jest",
+  "mutate": ["src/reglas.js", "src/servicio.js"],
+  "coverageAnalysis": "perTest",
+  "reporters": ["clear-text", "progress"],
+  "concurrency": 4,
+  "ignorePatterns": ["reports", "coverage", "docs"],
+  "jest": { "enableFindRelatedTests": false }
+}

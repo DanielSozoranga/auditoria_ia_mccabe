@@ -1,14 +1,12 @@
-# entorno virtual
-.venv/
+# dependencias de node
+node_modules/
 
-# cache de python
-__pycache__/
-*.pyc
+# resultados de jest y c8
+coverage/
 
-# resultados de pytest y cobertura
-.pytest_cache/
-.coverage
-htmlcov/
+# carpetas de trabajo y reportes de stryker
+.stryker-tmp/
+reports/
 
-# carpeta de trabajo de mutmut
-mutants/
+# base de datos local de la app
+*.db

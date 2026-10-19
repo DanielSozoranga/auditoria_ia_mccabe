@@ -2,57 +2,69 @@
 
 ## 1. Complejidad ciclomatica V(G)
 
-Se calculo a mano con V(G) = P + 1 (P son los puntos de decision, cada `and` y `or` cuenta como uno) y se confirmo con radon.
+Se calculo a mano con V(G) = P + 1 (P son los puntos de decision, cada `&&` y `||` cuenta como uno) y se confirmo con ESLint (`npm run complejidad`).
 
-| Funcion | P | V(G) a mano | radon | Tests de camino | Tests de limite |
+| Funcion | P | V(G) a mano | ESLint | Tests de camino | Tests de limite |
 |---|---|---|---|---|---|
-| es_pediatrico | 2 | 3 | 3 | 3 | 4 |
-| validar_tipo_consulta | 2 | 3 | 3 | 3 | 0 |
-| validar_horario | 4 | 5 | 5 | 5 | 1 |
-| hay_choque | 4 | 5 | 5 | 5 | 1 |
-| calcular_penalizacion | 2 | 3 | 3 | 3 | 1 |
-| agendar_cita | 1 | 2 | 2 | 2 | 0 |
-| cancelar_cita | 2 | 3 | 3 | 3 | 0 |
+| esPediatrico | 3 | 4 | 4 | 4 | 4 |
+| validarTipoConsulta | 2 | 3 | 3 | 3 | 0 |
+| validarHorario | 5 | 6 | 6 | 6 | 1 |
+| hayChoque | 4 | 5 | 5 | 5 | 1 |
+| calcularPenalizacion | 2 | 3 | 3 | 3 | 1 |
+| agendarCita | 1 | 2 | 2 | 2 | 2 |
+| cancelarCita | 2 | 3 | 3 | 3 | 0 |
+| leerDatosCita | 4 | 5 | 5 | 5 | 0 |
 
-Complejidad maxima: 5. Ninguna funcion pasa de 10, no hace falta refactorizar.
+Las demas funciones (base de datos, rutas de la API) tienen V(G) entre 1 y 5.
 
-## 2. Caminos de calcular_penalizacion
+Complejidad maxima: 6. Ninguna funcion pasa de 10, no hace falta refactorizar. `npm run lint` falla si alguna llega a 11.
 
-| Camino | tardia | es_emergencia | Resultado |
+## 2. Caminos de calcularPenalizacion
+
+El diagrama del grafo de flujo esta en docs/cfg_penalizacion.md y la comparacion de prompts en docs/prompts.md.
+
+| Camino | tardia | esEmergencia | Resultado |
 |---|---|---|---|
-| 1 | falso | cualquiera | 0.0 |
-| 2 | verdadero | falso | 15.0 |
-| 3 | verdadero | verdadero | 0.0 |
+| 1 | falso | cualquiera | 0 |
+| 2 | verdadero | falso | 15 |
+| 3 | verdadero | verdadero | 0 |
 
 ## 3. Resultados de las herramientas
 
 | Medida | Resultado |
 |---|---|
-| Tests | 31 (24 de camino y 7 de limite) |
-| Cobertura de sentencias | 100% |
-| Cobertura de ramas | 100% (24 de 24 ramas) |
-| Mutantes con solo los tests de camino | 41 muertos y 15 sobrevivieron de 56 |
-| Mutantes despues de agregar limites y mensajes exactos | 56 muertos de 56 |
+| Tests | 54 en total |
+| Cobertura de sentencias, ramas, funciones y lineas (Jest) | 100% |
+| Cobertura de ramas con c8 | 100% |
+| Mutantes con solo los tests por camino | 104 muertos y 7 sobrevivieron de 111 (93.69%) |
+| Mutantes despues de agregar 9 tests | 111 muertos de 111 (100%) |
 
-Los 15 mutantes que sobrevivieron al inicio mostraron que el 100% de cobertura era enganoso:
+Los 54 tests se reparten asi:
 
-1. Cambiar `<` por `<=` en las edades (0, 14, 120) y en la hora de apertura no fallaba ningun test.
-2. Cambiar `continue` por `break` en hay_choque no fallaba ninguno.
-3. Cambiar 24h por "24h o menos" en la penalizacion no fallaba ninguno.
-4. Alterar el texto de los errores no fallaba ninguno, porque `match` busca solo un pedazo del mensaje.
+1. 31 tests de camino, exactamente V(G) por funcion (reglas, servicio y leerDatosCita).
+2. 14 tests de la base de datos, la API y los archivos del frontend.
+3. 9 tests agregados despues de Stryker: 7 de limites en las reglas y 2 de que agendarCita aplica las reglas.
 
-Se agregaron 7 tests de limite y se pasaron los mensajes a comparacion exacta.
+Los 7 mutantes que sobrevivieron al inicio mostraron que el 100% de cobertura era enganoso:
+
+1. Cambiar `<` por `<=` en la edad minima, la edad maxima y el corte de 14 anios no hacia fallar ningun test.
+2. Cambiar `<` por `<=` en la hora de apertura (8:00) no hacia fallar ninguno.
+3. Cambiar `<` por `<=` en las 24 horas de la penalizacion no hacia fallar ninguno.
+4. Borrar las llamadas a validarTipoConsulta y validarHorario dentro de agendarCita no hacia fallar ninguno, porque los tests del servicio solo probaban el choque de horarios.
+
+Los mensajes de error se comparan de forma exacta desde el inicio, por eso no aparecieron mutantes de texto.
 
 ## 4. Cuestionario de auditoria
 
-1. Conozco V(G) antes de leer los tests? Si. Se calculo a mano antes de escribir cualquier test y coincide con radon.
-2. El 100% incluye aserciones fuertes? Ahora si. Al principio no: mutmut mostro 15 mutantes vivos con 100% de cobertura. Cada test compara el valor o el mensaje exacto.
-3. Estan evaluadas todas las condiciones logicas? Parcial. coverage.py mide ramas, no MC/DC. Las condiciones con `or` y `and` se cubrieron a mano con un test por condicion (por ejemplo edad negativa y edad mayor a 120 por separado), pero la herramienta no lo verifica.
-4. Forcé fallos para ver si los tests los detectan? Si, con mutmut: 56 mutantes y los 56 detectados.
-5. La complejidad es tan alta que conviene refactorizar? No. El maximo es 5.
+1. Conozco V(G) antes de leer los tests? Si. Se calculo a mano antes de escribir cualquier test y coincide con ESLint.
+2. El 100% incluye aserciones fuertes? Ahora si. Al principio no: Stryker mostro 7 mutantes vivos con 100% de cobertura. Cada test compara el valor o el mensaje exacto.
+3. Estan evaluadas todas las condiciones logicas? Parcial. Istanbul cuenta cada operando de `&&` y `||` como una rama, asi que se mide que cada condicion se evalue. Pero eso no es MC/DC, que exige probar que cada condicion cambia el resultado por si sola. Las condiciones se cubrieron a mano con un test por condicion.
+4. Forcé fallos para ver si los tests los detectan? Si, con Stryker: 111 mutantes y los 111 detectados.
+5. La complejidad es tan alta que conviene refactorizar? No. El maximo es 6.
 
 ## 5. Limites de este trabajo
 
-1. El PDF propone Node.js, Express y Alpine.js. Esta version usa Python y SQLite, y no incluye frontend ni API web.
+1. Solo se aplican mutaciones a src/reglas.js y src/servicio.js. La API (src/app.js) y la base (src/db.js) tienen 100% de cobertura pero no se les corrieron mutaciones.
 2. No se valida que la cita termine antes del cierre ni que cruce la hora de almuerzo, solo la hora de inicio.
-3. Las citas se agendan siempre de 30 minutos.
+3. Las citas son siempre de 30 minutos.
+4. La zona horaria es la del servidor: las reglas de horario usan la hora local de la maquina donde corre.
